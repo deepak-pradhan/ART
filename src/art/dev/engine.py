@@ -2,7 +2,6 @@ from typing import Any, Literal, Tuple
 
 from typing_extensions import TypedDict
 
-
 class EngineArgs(TypedDict, total=False):
     model: str
     served_model_name: str | list[str] | None
@@ -124,5 +123,3 @@ class EngineArgs(TypedDict, total=False):
     calculate_kv_scales: bool | None
 
     additional_config: dict[str, Any] | None
-
-    disable_log_requests: bool

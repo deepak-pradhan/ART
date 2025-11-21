@@ -17,8 +17,6 @@ from transformers.utils.dummy_pt_objects import (
 from trl import GRPOConfig, GRPOTrainer
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.engine.async_llm_engine import AsyncLLMEngine
-from vllm.worker.multi_step_model_runner import MultiStepModelRunner
-from vllm.worker.worker_base import WorkerWrapperBase
 
 from ..dev.model import InternalModelConfig
 from .train import gc_and_empty_cuda_cache
@@ -41,16 +39,10 @@ class ModelState:
     def __init__(self, config: InternalModelConfig) -> None:
         from vllm.engine import async_llm_engine
 
-        # Patch MultiStepModelRunner for Unsloth compatibility
-        if not hasattr(MultiStepModelRunner, "model"):
-            MultiStepModelRunner.model = property(  # type: ignore
-                lambda self: self._base_model_runner.model
-            )
-
         # Set effectively unlimited timeout to support engine pausing & resumption
         async_llm_engine.ENGINE_ITERATION_TIMEOUT_S = 2**31 - 1
         # Sticking with V0 engine for now
-        os.environ["VLLM_USE_V1"] = "0"
+        os.environ["VLLM_USE_V1"] = "1"
         # We can't use expandable segments with sleep mode
         enable_sleep_mode = config.get("engine_args", {}).get(
             "enable_sleep_mode", False
@@ -127,7 +119,6 @@ class vLLMState:
             patch_allocator,
             patch_get_lora_tokenizer_async,
             patch_lora_request,
-            patch_multi_step_model_runner,
         )
 
         if enable_sleep_mode:
@@ -142,11 +133,9 @@ class vLLMState:
             )
         self.enable_sleep_mode = enable_sleep_mode
         self.driver_worker = cast(
-            "WorkerWrapperBase",
-            getattr(self.async_engine.engine.model_executor, "driver_worker"),
+            Any,
+            getattr(self.async_engine.engine.model_executor, "driver_worker", None),
         )
-        if isinstance(self.driver_worker.model_runner, MultiStepModelRunner):
-            patch_multi_step_model_runner(self.driver_worker.model_runner)
 
     @asynccontextmanager
     async def train_mode(self) -> AsyncGenerator[None, None]:

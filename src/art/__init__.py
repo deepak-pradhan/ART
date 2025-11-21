@@ -1,4 +1,11 @@
 import os
+import warnings
+
+try:
+    from pydantic.warnings import UnsupportedFieldAttributeWarning
+    warnings.filterwarnings("ignore", category=UnsupportedFieldAttributeWarning)
+except ImportError:
+    pass
 
 # Import peft (and transformers by extension) before unsloth to enable sleep mode
 if os.environ.get("IMPORT_PEFT", "0") == "1":

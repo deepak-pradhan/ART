@@ -4,7 +4,6 @@ import ctypes
 from typing import Any
 
 import torch
-from vllm.worker.multi_step_model_runner import MultiStepModelRunner
 
 
 def patch_allocator() -> None:
@@ -184,14 +183,3 @@ def patch_tool_parser_manager() -> None:
 
     ToolParserManager.get_tool_parser = patched_get_tool_parser
 
-
-def patch_multi_step_model_runner(runner: MultiStepModelRunner) -> None:
-    """
-    Patches a MultiStepModelRunner to support LoRA adapters.
-    """
-    base_runner = runner._base_model_runner
-    runner.set_active_loras = base_runner.set_active_loras
-    runner.add_lora = base_runner.add_lora
-    runner.remove_lora = base_runner.remove_lora
-    runner.pin_lora = base_runner.pin_lora
-    runner.list_loras = base_runner.list_loras
